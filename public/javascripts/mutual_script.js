@@ -1,0 +1,233 @@
+
+
+document.addEventListener('DOMContentLoaded', async function () {
+    function generateGreyShades(n) {
+        if (n < 1) return [];
+        if (n > 254) {
+            console.error("Maximum 254 shades are possible (excluding black and white).");
+            return [];
+        }
+    
+        let shades = [];
+        let step = Math.floor(254 / (n + 1)); 
+    
+        for (let i = 1; i <= n; i++) {
+            let shade = 255 - i * step;
+            let hex = `#${shade.toString(16).padStart(2, '0').repeat(3)}`;
+            shades.push(hex);
+        }
+    
+        return shades;
+    }
+    
+    
+    
+
+    
+    let addbtn = document.querySelector('#addbtn');
+    let popup = document.querySelector(".popup");
+    let container = document.querySelector('.container')
+    let closebtn = document.querySelector('#closebtn svg')
+    addbtn.addEventListener('click',()=>{
+        popup.style.display = "block";
+        container.classList.add("interact");
+    })
+    closebtn.addEventListener('click',()=>{
+    popup.style.display = "none";
+            
+    container.classList.remove("interact");
+    })
+    
+    // console.log(allmutuals);
+   
+    let allmutuals;
+    await fetch('/api/mutual-funds')
+        .then(response => response.json())
+        .then(data => {
+            // console.log("Mutual Funds:", data);
+            allmutuals = data;
+        })
+    .catch(error => console.error("Error fetching data:", error));
+    // console.log(allmutuals[0])
+    let allsum = [];
+    let allmfnames = [];
+    let allboughtUnits = [];
+    let allavgnav = []
+    let assettClassdisti = [0,0,0,0,0,0,0,0,0]
+    let alltotalUnits = []
+    for (let key in allmutuals) {
+        let arr = allmutuals[key].investedAmount
+        let arr2 = allmutuals[key].boughtUnits
+        let arr3 = allmutuals[key].buyingDates
+        let arr4 = allmutuals[key].assettClass
+        let arr5 = allmutuals[key].navArr
+        // console.log(arr4)
+        allmfnames.push(allmutuals[key].fundName)
+        let temp = 0,temp2=0;
+        for(let j = 0;j<arr.length;j++){
+            let num = Number(arr[j])
+            temp += num;
+        }
+        for(let j = 0;j<arr2.length;j++){
+            let num = Number(arr2[j])
+            temp2 += num;     
+        }
+        
+        for(let j = 0;j<arr4.length;j++){
+            if(arr4[j] == 'Equity - Large Cap') assettClassdisti[0]++;
+            if(arr4[j] == 'Equity - Mid Cap') assettClassdisti[1]++;
+            if(arr4[j] == 'Equity - Small Cap') assettClassdisti[2]++;
+            if(arr4[j] == 'Equity - Others') assettClassdisti[3]++;
+            if(arr4[j] == 'Debt Fund') assettClassdisti[4]++;
+            if(arr4[j] == 'Hybrid Fund') assettClassdisti[5]++;
+            if(arr4[j] == 'Commodity Fund') assettClassdisti[6]++;
+            if(arr4[j] == 'Real Estate Fund') assettClassdisti[7]++;
+            if(arr4[j] == 'Others') assettClassdisti[8]++;
+        }
+        let avgnav = 0;
+        let totalunits = 0;
+        for(let j = 0;j<arr5.length;j++){
+           totalunits += arr2[j];
+           avgnav += arr2[j]*arr5[j]
+        }
+        // console.log(totalunits)
+        alltotalUnits.push(totalunits);
+        avgnav = avgnav/totalunits;
+        allavgnav.push(avgnav);
+        allsum.push(temp);
+        allboughtUnits.push(temp2);
+    }
+    let recentnav = []
+    for(let key in allmutuals){
+        let code = allmutuals[key].fundCode
+        
+        try {
+            const response = await fetch(`https://api.mfapi.in/mf/${code}`);
+            const data = await response.json();
+            recentnav.push(data.data[0].nav)     
+        } catch (error) {
+            console.error("Error fetching NAV:", error);
+        }
+    }
+    console.log(recentnav)
+    // console.log(allavgnav)
+    let assettsum = assettClassdisti.reduce((acc, num) => acc + num, 0);
+    let assettper = [];
+    for(let i = 0;i<assettClassdisti.length;i++){
+            let x = assettClassdisti[i]/assettsum
+            x = x*100;
+            assettper.push(x);
+    }
+    
+    // console.log(allmfnames)
+    // console.log(allsum)
+    // console.log(allboughtUnits)
+    let totalAmount = allsum.reduce((acc, num) => acc + num, 0);
+    let typeClass = ['Equity - Large Cap','Equity - Mid Cap','Equity - Small Cap','Equity - Others','Debt Fund','Hybrid Fund','Commodity Fund','Real Estate Fund','Others']
+    
+    let percentArr = []
+    for(let i = 0;i<allsum.length;i++){
+        let x = allsum[i]/totalAmount
+        x=x*100
+        percentArr.push(x)
+        // console.log(x)
+    }
+    // console.log(percentArr)
+    
+    let perreturn = []
+    for(let j = 0;j<allsum.length;j++){
+        let totalInvestment = allsum[j];
+        let avgnav = allavgnav[j];
+        let bought = allboughtUnits[j];
+        let recent = recentnav[j]
+        let per = ((recent-avgnav)*100)/avgnav
+        perreturn.push(per);
+    }
+    console.log(perreturn)
+    let allmflist = document.querySelector('.allmflist');
+    for(let i = 0;i<allsum.length;i++){
+       let str = allmfnames[i].slice(0,30);
+       if(allmfnames[i].length > 30) str += ' ...'
+       allmflist.innerHTML = allmflist.innerHTML + 
+       `
+        <div class="mfcompo">
+                                <div class="mflistfirst">
+                                   <span class="allmflistlogo"></span>
+                                </div>
+                                <div class="mflistsecond"> 
+                                    <div class="mflistsecondone">${str}</div>
+                                    <div class="mflistsecondtwo" style="font-weight: 400;">
+                                        <span>Invested Amount : ${allsum[i]}</span>
+                                        <span >Bought Units : ${allboughtUnits[i].toFixed(2)}</span>
+                                    </div>
+                                </div>
+        </div>
+       `
+    }
+    let profitdiv = document.querySelector(".profits .allmflist")
+    for(let j = 0;j<perreturn.length;j++){
+        let tempper = perreturn[j].toFixed(2)
+        let str = allmfnames[j].slice(0,30);
+        if(allmfnames[j].length > 20) str += ' ...'
+        let clr = "#2CEBBE";
+        if(tempper < 0){
+            clr = "#f53149db"
+        }
+        let x = `<div class="mfcompo">
+                                <div class="mflistfirst">
+                                   <span class="allmflistlogo" style="background-color : ${clr};"></span>
+                                </div>
+                                <div class="mflistsecond pmflistsecond"> 
+                                    <div class="mflistsecondone pmflistsecondone">${str}</div>
+                                    <div class="mflistsecondtwo pmflistsecondtwo" style="font-weight: 400;">
+                                        <span style = "color : ${clr};">${tempper} %</span>
+                                    </div>
+                                </div>
+                            </div> `
+        profitdiv.innerHTML = profitdiv.innerHTML + x
+    }
+    const ctx = document.getElementById('myPieChart').getContext('2d');
+    const ctx2 = document.getElementById('pie2').getContext('2d')
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels : allmfnames,
+            datasets: [{
+                data: percentArr,
+                backgroundColor: generateGreyShades(allmfnames.length)
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    
+
+    new Chart(ctx2, {
+        type: 'pie',
+        data: {
+            labels : typeClass,
+            datasets: [{
+                data: assettper,
+                backgroundColor: generateGreyShades(typeClass.length)
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+   
+    
+});
