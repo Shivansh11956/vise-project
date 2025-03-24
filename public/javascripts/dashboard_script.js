@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', function () {
     const ctx = document.getElementById('incomeOrderChart').getContext('2d');
 

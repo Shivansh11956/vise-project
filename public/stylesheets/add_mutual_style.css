@@ -8,6 +8,7 @@ body {
     font-family: 'Montserrat', sans-serif;
     display: flex;
     height: 100vh;
+    cursor: default;
     /* background-color: black; */
     
 }
@@ -188,7 +189,9 @@ button:hover {
     position: relative;
     /* width: 200px; */
 }
-
+.dropdown1{
+    position: relative;
+}
   .dropdown input {
     width: 100%;
     padding: 10px;

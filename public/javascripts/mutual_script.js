@@ -1,6 +1,9 @@
 
+document.addEventListener('DOMContentLoaded', async function () {    
+   loadData(); 
+});
 
-document.addEventListener('DOMContentLoaded', async function () {
+async function loadData(){
     function generateGreyShades(n) {
         if (n < 1) return [];
         if (n > 254) {
@@ -39,7 +42,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     })
     
     // console.log(allmutuals);
-   
+    //Pie Chart Starting it is the mutual fund distribution
     let allmutuals;
     await fetch('/api/mutual-funds')
         .then(response => response.json())
@@ -55,7 +58,17 @@ document.addEventListener('DOMContentLoaded', async function () {
     let allavgnav = []
     let assettClassdisti = [0,0,0,0,0,0,0,0,0]
     let alltotalUnits = []
+    let allmflist = document.querySelector('.allmflist');
+    let mflistHTML = "";
+    let netAsset = 0,currentAsset = 0;
+    let netassetcon = document.querySelector('#invested p')
+    let currentassetcon = document.querySelector('#current p')
+    let pnlcon = document.querySelector('#pnl p')
+    let pnlcon2 = document.querySelector('#pnl span p')
+    let pnlcon3 = document.querySelector('#pnl span')
+    let pnlcon4 = document.querySelector('#pnl span svg')
     for (let key in allmutuals) {
+        // allmflist.innerHTML = "";
         let arr = allmutuals[key].investedAmount
         let arr2 = allmutuals[key].boughtUnits
         let arr3 = allmutuals[key].buyingDates
@@ -87,8 +100,8 @@ document.addEventListener('DOMContentLoaded', async function () {
         let avgnav = 0;
         let totalunits = 0;
         for(let j = 0;j<arr5.length;j++){
-           totalunits += arr2[j];
-           avgnav += arr2[j]*arr5[j]
+        totalunits += arr2[j];
+        avgnav += arr2[j]*arr5[j]
         }
         // console.log(totalunits)
         alltotalUnits.push(totalunits);
@@ -109,7 +122,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             console.error("Error fetching NAV:", error);
         }
     }
-    console.log(recentnav)
+    // console.log(recentnav)
     // console.log(allavgnav)
     let assettsum = assettClassdisti.reduce((acc, num) => acc + num, 0);
     let assettper = [];
@@ -143,27 +156,50 @@ document.addEventListener('DOMContentLoaded', async function () {
         let per = ((recent-avgnav)*100)/avgnav
         perreturn.push(per);
     }
-    console.log(perreturn)
-    let allmflist = document.querySelector('.allmflist');
     for(let i = 0;i<allsum.length;i++){
-       let str = allmfnames[i].slice(0,30);
-       if(allmfnames[i].length > 30) str += ' ...'
-       allmflist.innerHTML = allmflist.innerHTML + 
-       `
+        netAsset += allsum[i]
+        currentAsset = currentAsset + ((100+perreturn[i])*allsum[i])/100;
+        // console.log(currentAsset)
+    }
+
+    netAsset = parseFloat(netAsset.toFixed(2))
+    currentAsset = parseFloat(currentAsset.toFixed(2))
+    
+    netassetcon.innerHTML = `₹` +  netAsset
+    currentassetcon.innerHTML = '₹' + currentAsset
+    pnlcon.innerHTML = '₹' + parseFloat((currentAsset-netAsset).toFixed(2))
+    if(currentAsset - netAsset >= 0){
+       pnlcon2.innerHTML = '+'
+    }else{
+       pnlcon2.innerHTML = '-'
+       pnlcon3.style.color = '#eb7171'
+       pnlcon4.style.transform = 'rotate(180deg)'
+    }
+    pnlcon2.innerHTML = ''
+    pnlcon2.innerHTML += parseFloat((((currentAsset-netAsset)*100)/netAsset).toFixed(2)) + '%'
+    console.log(allsum)
+    console.log(perreturn)
+    // let allmflist = document.querySelector('.allmflist');
+    for(let i = 0;i<allsum.length;i++){
+    let str = allmfnames[i].slice(0,30);
+    if(allmfnames[i].length > 30) str += ' ...'
+    mflistHTML =  
+    `
         <div class="mfcompo">
                                 <div class="mflistfirst">
-                                   <span class="allmflistlogo"></span>
+                                <span class="allmflistlogo"></span>
                                 </div>
                                 <div class="mflistsecond"> 
                                     <div class="mflistsecondone">${str}</div>
                                     <div class="mflistsecondtwo" style="font-weight: 400;">
                                         <span>Invested Amount : ${allsum[i]}</span>
-                                        <span >Bought Units : ${allboughtUnits[i].toFixed(2)}</span>
+                                        <span >Accumulated Units : ${allboughtUnits[i].toFixed(2)}</span>
                                     </div>
                                 </div>
         </div>
-       `
+    ` + mflistHTML
     }
+    allmflist.innerHTML = mflistHTML;
     let profitdiv = document.querySelector(".profits .allmflist")
     for(let j = 0;j<perreturn.length;j++){
         let tempper = perreturn[j].toFixed(2)
@@ -175,7 +211,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
         let x = `<div class="mfcompo">
                                 <div class="mflistfirst">
-                                   <span class="allmflistlogo" style="background-color : ${clr};"></span>
+                                <span class="allmflistlogo" style="background-color : ${clr};"></span>
                                 </div>
                                 <div class="mflistsecond pmflistsecond"> 
                                     <div class="mflistsecondone pmflistsecondone">${str}</div>
@@ -184,7 +220,7 @@ document.addEventListener('DOMContentLoaded', async function () {
                                     </div>
                                 </div>
                             </div> `
-        profitdiv.innerHTML = profitdiv.innerHTML + x
+        profitdiv.innerHTML = x + profitdiv.innerHTML
     }
     const ctx = document.getElementById('myPieChart').getContext('2d');
     const ctx2 = document.getElementById('pie2').getContext('2d')
@@ -207,7 +243,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
     });
 
-    
+    //// pie chart end
 
     new Chart(ctx2, {
         type: 'pie',
@@ -227,7 +263,4 @@ document.addEventListener('DOMContentLoaded', async function () {
             }
         }
     });
-
-   
-    
-});
+}

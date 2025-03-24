@@ -3,6 +3,7 @@ const app = express()
 const path = require('path')
 const userModel = require('./models/user');
 const mutualModel = require('./models/mutual_fund')
+const fixedModel = require('./models/fixed_deposit')
 let bcrypt = require('bcrypt')
 let jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
@@ -60,7 +61,7 @@ app.post('/create-account',async (req,res)=>{
         })
     })    
 })
-app.post('/add_mutual_fund', async (req, res) => {
+app.post('/add_mutual_fund',isLogged, async (req, res) => {
     let { fund_name, fund_code, nav, invested_amount, invested_date, investment_type } = req.body;
     let token = req.cookies.token;
     let decoded = jwt.verify(token, 'shhhhh');
@@ -143,6 +144,7 @@ app.get('/api/mutual-funds', async (req, res) => {
         res.status(500).json({ error: "Internal Server Error" });
     }
 });
+
 app.get('/logout',(req,res)=>{
     res.cookie('token','');
     res.redirect('/')
@@ -156,7 +158,36 @@ app.get('/mutual-funds',isLogged,async (req,res)=>{
     console.log(req.cookies.token)
     res.render('mutual-funds',{allmutuals : allmutuals});
 })
-
+app.get('/mf-detail',isLogged,async (req,res)=>{
+    let token = req.cookies.token;
+    let decoded = jwt.verify(token, 'shhhhh');
+  
+    let allmutuals = await mutualModel.find({userName : decoded.email})
+    // console.log(allmutuals)
+    res.render('mf-detail',{allmutuals : allmutuals})
+})
+app.get('/fixed-deposits',isLogged,async (req,res)=>{
+    res.render('fixed-deposit')
+})
+app.get('/add-fixed-deposit',isLogged,async (req,res)=>{
+    res.render('add-fixed-deposit')
+})
+app.post('/add_fixed_deposit',async (req,res)=>{
+    let {fdName , fdType, maturityPeriod,startDate,investedAmount,interestRate} = req.body
+    let token = req.cookies.token;
+    let decoded = jwt.verify(token, 'shhhhh');
+    
+    let createdfixedDeposit= await fixedModel.create({  
+        userName: decoded.email,
+        fdName : fdName,
+        fdType : fdType,
+        maturityPeriod : maturityPeriod,
+        date : startDate,
+        fdInvestment : investedAmount,
+        interestRate : interestRate
+    });
+    res.redirect('/fixed-deposits')
+});
 app.listen(3000,()=>{
     console.log('running');
 });
